@@ -25,19 +25,14 @@ type({ map: Player })(MyRoomState.prototype, "players");
 
 // Room Logic
 class MyRoom extends Room {
-  // ✅ STORE ROOM NAME
-  roomName = "";
-
   onCreate(options) {
     this.setState(new MyRoomState());
 
-    // ✅ SAVE CUSTOM ROOM NAME
-    this.roomName = options.roomName || "default_room";
-    this.roomId = this.roomName; // Use room name as ID
+    // ✅ USE ROOM ID AS THE IDENTIFIER
+    // When creating, options.roomName becomes the room ID
+    console.log("Room created!");
+    console.log("Options received:", options);
 
-    console.log(`Room created with name: ${this.roomName}`);
-
-    // Set max clients (optional)
     this.maxClients = 10;
 
     // Handle player movement
@@ -52,9 +47,9 @@ class MyRoom extends Room {
   }
 
   onJoin(client, options) {
-    console.log(`${client.sessionId} joined room: ${this.roomName}`);
+    console.log(client.sessionId, "joined room:", this.roomId);
 
-    // Create new player with name
+    // Create new player
     const player = new Player();
     player.x = 0;
     player.y = 0;
@@ -63,22 +58,16 @@ class MyRoom extends Room {
 
     this.state.players.set(client.sessionId, player);
 
-    console.log(`Player name: ${player.name}`);
+    console.log("Player name:", player.name);
   }
 
   onLeave(client, consented) {
-    console.log(`${client.sessionId} left room: ${this.roomName}`);
+    console.log(client.sessionId, "left!");
     this.state.players.delete(client.sessionId);
   }
 
   onDispose() {
-    console.log(`Room disposed: ${this.roomName}`);
-  }
-
-  // ✅ FILTER: Only allow clients with matching room name
-  onAuth(client, options) {
-    // This is called before onJoin
-    return true; // Allow all for now, we'll filter in server/index.js
+    console.log("Room disposed!");
   }
 }
 
