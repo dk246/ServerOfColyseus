@@ -25,13 +25,20 @@ type({ map: Player })(MyRoomState.prototype, "players");
 
 // Room Logic
 class MyRoom extends Room {
+  // ✅ STORE CUSTOM ROOM NAME
+  customRoomName = "";
+
   onCreate(options) {
     this.setState(new MyRoomState());
 
-    // ✅ USE ROOM ID AS THE IDENTIFIER
-    // When creating, options.roomName becomes the room ID
-    console.log("Room created!");
-    console.log("Options received:", options);
+    // ✅ SAVE THE CUSTOM ROOM NAME
+    this.customRoomName = options.customRoomName || "default";
+
+    // ✅ SET AS METADATA SO WE CAN QUERY IT
+    this.setMetadata({ customRoomName: this.customRoomName });
+
+    console.log(`✓ Room created with custom name: "${this.customRoomName}"`);
+    console.log(`  Colyseus Room ID: ${this.roomId}`);
 
     this.maxClients = 10;
 
@@ -47,7 +54,11 @@ class MyRoom extends Room {
   }
 
   onJoin(client, options) {
-    console.log(client.sessionId, "joined room:", this.roomId);
+    console.log(
+      `✓ ${options.name || client.sessionId} joined room: "${
+        this.customRoomName
+      }"`
+    );
 
     // Create new player
     const player = new Player();
@@ -57,17 +68,15 @@ class MyRoom extends Room {
     player.name = options.name || "Player";
 
     this.state.players.set(client.sessionId, player);
-
-    console.log("Player name:", player.name);
   }
 
   onLeave(client, consented) {
-    console.log(client.sessionId, "left!");
+    console.log(`✗ ${client.sessionId} left room: "${this.customRoomName}"`);
     this.state.players.delete(client.sessionId);
   }
 
   onDispose() {
-    console.log("Room disposed!");
+    console.log(`Room disposed: "${this.customRoomName}"`);
   }
 }
 

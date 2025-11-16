@@ -1,4 +1,4 @@
-const { Server, matchMaker } = require("colyseus");
+const { Server } = require("colyseus");
 const { createServer } = require("http");
 const express = require("express");
 const { monitor } = require("@colyseus/monitor");
@@ -66,8 +66,8 @@ app.use("/colyseus", monitor());
 // Import your room
 const { MyRoom } = require("./MyRoom");
 
-// ✅ SIMPLE DEFINE - NO FILTERBY
-gameServer.define("my_room", MyRoom);
+// ✅ DEFINE ROOM WITH FILTERBY
+gameServer.define("my_room", MyRoom).filterBy(["customRoomName"]);
 
 // Use environment PORT
 const PORT = process.env.PORT || 2567;
