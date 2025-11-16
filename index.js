@@ -6,11 +6,11 @@ const cors = require("cors");
 
 const app = express();
 
-// Enable CORS for all origins
+// Enable CORS
 app.use(cors());
 app.use(express.json());
 
-// Add root route to show server is running
+// Add root route
 app.get("/", (req, res) => {
   res.send(`
     <html>
@@ -49,7 +49,7 @@ app.get("/", (req, res) => {
           <h1>🎮 Colyseus Multiplayer Server</h1>
           <p class="status">✅ Server is running!</p>
           <p><strong>WebSocket URL:</strong> wss://serverofcolyseus-production-c543.up.railway.app</p>
-          <p><strong>Available Rooms:</strong> my_room</p>
+          <p><strong>Available Rooms:</strong> my_room (dynamic)</p>
           <a href="/colyseus">View Monitor Dashboard →</a>
         </div>
       </body>
@@ -67,10 +67,10 @@ app.use("/colyseus", monitor());
 // Import your room
 const { MyRoom } = require("./MyRoom");
 
-// Define your room
-gameServer.define("my_room", MyRoom);
+// ✅ DEFINE ROOM WITH FILTER LOGIC
+gameServer.define("my_room", MyRoom).filterBy(["roomName"]); // Filter rooms by roomName option
 
-// Use environment PORT for Railway
+// Use environment PORT
 const PORT = process.env.PORT || 2567;
 
 gameServer.listen(PORT);

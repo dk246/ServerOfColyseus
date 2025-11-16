@@ -5,18 +5,13 @@ const { Schema, MapSchema, type } = require("@colyseus/schema");
 class Player extends Schema {
   constructor() {
     super();
-    this.x = 0;
-    this.y = 0;
-    this.z = 0;
-    this.name = "Player"; // ✅ Initialize default value
   }
 }
 
-// ✅ DEFINE ALL TYPES (including name)
 type("number")(Player.prototype, "x");
 type("number")(Player.prototype, "y");
 type("number")(Player.prototype, "z");
-type("string")(Player.prototype, "name"); // ✅ CRITICAL: Add this line
+type("string")(Player.prototype, "name");
 
 // Room State
 class MyRoomState extends Schema {
@@ -30,9 +25,20 @@ type({ map: Player })(MyRoomState.prototype, "players");
 
 // Room Logic
 class MyRoom extends Room {
+  // ✅ STORE ROOM NAME
+  roomName = "";
+
   onCreate(options) {
     this.setState(new MyRoomState());
-    console.log("Room created!");
+
+    // ✅ SAVE CUSTOM ROOM NAME
+    this.roomName = options.roomName || "default_room";
+    this.roomId = this.roomName; // Use room name as ID
+
+    console.log(`Room created with name: ${this.roomName}`);
+
+    // Set max clients (optional)
+    this.maxClients = 10;
 
     // Handle player movement
     this.onMessage("updatePosition", (client, message) => {
@@ -46,29 +52,33 @@ class MyRoom extends Room {
   }
 
   onJoin(client, options) {
-    console.log(client.sessionId, "joined!");
-    console.log("Received options:", options);
-    console.log("Player name:", options.name);
+    console.log(`${client.sessionId} joined room: ${this.roomName}`);
 
-    // Create new player
+    // Create new player with name
     const player = new Player();
     player.x = 0;
     player.y = 0;
     player.z = 0;
     player.name = options.name || "Player";
 
-    console.log("Set player.name to:", player.name);
-
     this.state.players.set(client.sessionId, player);
+
+    console.log(`Player name: ${player.name}`);
   }
 
   onLeave(client, consented) {
-    console.log(client.sessionId, "left!");
+    console.log(`${client.sessionId} left room: ${this.roomName}`);
     this.state.players.delete(client.sessionId);
   }
 
   onDispose() {
-    console.log("Room disposed!");
+    console.log(`Room disposed: ${this.roomName}`);
+  }
+
+  // ✅ FILTER: Only allow clients with matching room name
+  onAuth(client, options) {
+    // This is called before onJoin
+    return true; // Allow all for now, we'll filter in server/index.js
   }
 }
 
