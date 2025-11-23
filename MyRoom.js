@@ -1,29 +1,38 @@
 // myroom.js
-// Colyseus room implementation for player state and skin synchronization.
-//
-// Key fixes:
-// - Use authoritative Schema state (this.state.players) for skinId.
-// - Broadcast skinChanged AFTER the state patch is sent to clients ({ afterNextPatch: true })
-//   so clients always receive the state (and can spawn the player) before processing the event.
+// Colyseus room implementation ensuring schema property order matches client C# schema.
+// Important: client and server schema must have the same fields in the same order.
 
 const { Room } = require("colyseus");
 const { Schema, MapSchema, type } = require("@colyseus/schema");
 
-// Player Schema
+// Player Schema - fields declared in the same order as the C# client schema:
+// x, y, z, rotY, rotX, rotZ, name, skinId
 class Player extends Schema {
     constructor() {
         super();
         this.x = 0;
         this.y = 0;
         this.z = 0;
+
+        // rotation placeholders (keep them so the schema index alignment matches client)
+        this.rotY = 0;
+        this.rotX = 0;
+        this.rotZ = 0;
+
         this.name = "Player";
         this.skinId = 0;
     }
 }
 
+// Make sure to declare the types in the same logical order as the fields above.
 type("number")(Player.prototype, "x");
 type("number")(Player.prototype, "y");
 type("number")(Player.prototype, "z");
+
+type("number")(Player.prototype, "rotY");
+type("number")(Player.prototype, "rotX");
+type("number")(Player.prototype, "rotZ");
+
 type("string")(Player.prototype, "name");
 type("number")(Player.prototype, "skinId");
 
@@ -63,9 +72,7 @@ class MyRoom extends Room {
                 player.skinId = message.skinId;
                 console.log(`✅ ${client.sessionId} changed skin to: ${message.skinId}`);
 
-                // Broadcast a friendly event AFTER the state patch is applied to clients,
-                // so clients will already have the player entry in their local state when
-                // they receive this event.
+                // Broadcast AFTER the state patch is applied so clients see the state first
                 this.broadcast("skinChanged", {
                     playerId: client.sessionId,
                     skinId: message.skinId
@@ -85,6 +92,12 @@ class MyRoom extends Room {
         player.x = 0;
         player.y = 0;
         player.z = 0;
+
+        // rotation defaults (keep in schema to preserve index mapping)
+        player.rotY = 0;
+        player.rotX = 0;
+        player.rotZ = 0;
+
         player.name = options.name || "Player";
 
         const provided = typeof options.skinId === "number";
