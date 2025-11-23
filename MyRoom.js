@@ -49,17 +49,20 @@ class MyRoom extends Room {
         this.onMessage("changeSkin", (client, message) => {
             const player = this.state.players.get(client.sessionId);
             if (player && typeof message.skinId === "number") {
-                // ✅ IMPORTANT: Assign the new skinId
+                console.log(`📥 Received changeSkin from ${client.sessionId}: ${message.skinId}`);
+
                 player.skinId = message.skinId;
+
                 console.log(`✅ ${client.sessionId} changed skin to: ${message.skinId}`);
 
-                // ✅ FORCE STATE SYNC (sometimes needed)
                 this.broadcast("skinChanged", {
                     playerId: client.sessionId,
                     skinId: message.skinId
-                });
+                }, { afterNextPatch: true });
+
+                console.log(`📡 Broadcasted skin change to all clients`);
             } else {
-                console.log(`❌ Invalid skin change request from ${client.sessionId}`);
+                console.log(`❌ Invalid skin change request from ${client.sessionId}:`, message);
             }
         });
     }
@@ -73,13 +76,20 @@ class MyRoom extends Room {
         player.z = 0;
         player.name = options.name || "Player";
 
-        // If client provided a skinId use it; otherwise pick a random one (0..4)
         const provided = typeof options.skinId === "number";
         player.skinId = provided ? options.skinId : Math.floor(Math.random() * 5);
 
         console.log(`Assigned skin ${player.skinId} to ${client.sessionId}`);
 
         this.state.players.set(client.sessionId, player);
+
+        setTimeout(() => {
+            this.broadcast("skinChanged", {
+                playerId: client.sessionId,
+                skinId: player.skinId
+            });
+            console.log(`📡 Broadcasted initial skin ${player.skinId} for ${client.sessionId}`);
+        }, 100);
     }
 
     onLeave(client, consented) {
