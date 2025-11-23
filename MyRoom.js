@@ -49,8 +49,17 @@ class MyRoom extends Room {
         this.onMessage("changeSkin", (client, message) => {
             const player = this.state.players.get(client.sessionId);
             if (player && typeof message.skinId === "number") {
+                // ✅ IMPORTANT: Assign the new skinId
                 player.skinId = message.skinId;
-                console.log(`${client.sessionId} changed skin to: ${message.skinId}`);
+                console.log(`✅ ${client.sessionId} changed skin to: ${message.skinId}`);
+
+                // ✅ FORCE STATE SYNC (sometimes needed)
+                this.broadcast("skinChanged", {
+                    playerId: client.sessionId,
+                    skinId: message.skinId
+                });
+            } else {
+                console.log(`❌ Invalid skin change request from ${client.sessionId}`);
             }
         });
     }
