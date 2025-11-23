@@ -3,81 +3,84 @@ const { Schema, MapSchema, type } = require("@colyseus/schema");
 
 // Player Schema
 class Player extends Schema {
-  constructor() {
-    super();
-  }
+    constructor() {
+        super();
+        this.x = 0;
+        this.y = 0;
+        this.z = 0;
+        this.name = "Player";
+        this.skinId = 0;
+    }
 }
 
 type("number")(Player.prototype, "x");
 type("number")(Player.prototype, "y");
 type("number")(Player.prototype, "z");
 type("string")(Player.prototype, "name");
+type("number")(Player.prototype, "skinId");
 
 // Room State
 class MyRoomState extends Schema {
-  constructor() {
-    super();
-    this.players = new MapSchema();
-  }
+    constructor() {
+        super();
+        this.players = new MapSchema();
+    }
 }
 
 type({ map: Player })(MyRoomState.prototype, "players");
 
 // Room Logic
 class MyRoom extends Room {
-  // ✅ STORE CUSTOM ROOM NAME
-  customRoomName = "";
+    onCreate(options) {
+        this.setState(new MyRoomState());
+        console.log("Room created!");
 
-  onCreate(options) {
-    this.setState(new MyRoomState());
+        // Handle position updates
+        this.onMessage("updatePosition", (client, message) => {
+            const player = this.state.players.get(client.sessionId);
+            if (player) {
+                player.x = message.x;
+                player.y = message.y;
+                player.z = message.z;
+            }
+        });
 
-    // ✅ SAVE THE CUSTOM ROOM NAME
-    this.customRoomName = options.customRoomName || "default";
+        // Handle skin change requests
+        this.onMessage("changeSkin", (client, message) => {
+            const player = this.state.players.get(client.sessionId);
+            if (player && typeof message.skinId === "number") {
+                player.skinId = message.skinId;
+                console.log(`${client.sessionId} changed skin to: ${message.skinId}`);
+            }
+        });
+    }
 
-    // ✅ SET AS METADATA SO WE CAN QUERY IT
-    this.setMetadata({ customRoomName: this.customRoomName });
+    onJoin(client, options) {
+        console.log(client.sessionId, "joined! options:", options);
 
-    console.log(`✓ Room created with custom name: "${this.customRoomName}"`);
-    console.log(`  Colyseus Room ID: ${this.roomId}`);
+        const player = new Player();
+        player.x = 0;
+        player.y = 0;
+        player.z = 0;
+        player.name = options.name || "Player";
 
-    this.maxClients = 10;
+        // If client provided a skinId use it; otherwise pick a random one (0..4)
+        const provided = typeof options.skinId === "number";
+        player.skinId = provided ? options.skinId : Math.floor(Math.random() * 5);
 
-    // Handle player movement
-    this.onMessage("updatePosition", (client, message) => {
-      const player = this.state.players.get(client.sessionId);
-      if (player) {
-        player.x = message.x;
-        player.y = message.y;
-        player.z = message.z;
-      }
-    });
-  }
+        console.log(`Assigned skin ${player.skinId} to ${client.sessionId}`);
 
-  onJoin(client, options) {
-    console.log(
-      `✓ ${options.name || client.sessionId} joined room: "${
-        this.customRoomName
-      }"`
-    );
+        this.state.players.set(client.sessionId, player);
+    }
 
-    // Create new player
-    const player = new Player();
-    player.x = 0;
-    player.y = 0;
-    player.z = 0;
-    player.name = options.name || "Player";
+    onLeave(client, consented) {
+        console.log(client.sessionId, "left!");
+        this.state.players.delete(client.sessionId);
+    }
 
-    this.state.players.set(client.sessionId, player);
-  }
-
-  onLeave(client, consented) {
-    console.log(`✗ ${client.sessionId} left room: "${this.customRoomName}"`);
-    this.state.players.delete(client.sessionId);
-  }
-
-  onDispose() {
-    console.log(`Room disposed: "${this.customRoomName}"`);
-  }
+    onDispose() {
+        console.log("Room disposed!");
+    }
 }
 
 exports.MyRoom = MyRoom;
